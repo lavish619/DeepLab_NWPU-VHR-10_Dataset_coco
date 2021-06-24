@@ -3,7 +3,7 @@
 import json
 import random
 
-datasets_path = './data_dataset_coco/'
+datasets_path = './NWPU VHR-10_dataset_coco/'
 
 f = open('{}annotations.json'.format(datasets_path) ,encoding='utf-8')
 gt = json.load(f)
