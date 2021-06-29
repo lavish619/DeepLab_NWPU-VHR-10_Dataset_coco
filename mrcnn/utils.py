@@ -345,7 +345,7 @@ class Dataset(object):
         """
         return self.image_info[image_id]["path"]
 
-    def load_image(self, image_id):
+    def load_image(self, image_id, img_size):
         """Load the specified image and return a [H,W,3] Numpy array.
         """
         # Load image
@@ -356,6 +356,7 @@ class Dataset(object):
         # If has an alpha channel, remove it for consistency
         if image.shape[-1] == 4:
             image = image[..., :3]
+        image = resize(image, img_size)*255.0 
         return image
 
     def load_mask(self, image_id):

@@ -76,7 +76,7 @@ class CocoDataset(utils.Dataset):
                 annotations=self.coco.loadAnns(self.coco.getAnnIds(
                     imgIds=[i], catIds=class_ids, iscrowd=None)))
 
-    def load_normalmask(self, image_id, class_channels = True):
+    def load_normalmask(self, image_id, img_size, class_channels = True):
         """Load semantic segmenation masks for the given image.
 
         Different datasets use different ways to store masks. This
@@ -90,20 +90,23 @@ class CocoDataset(utils.Dataset):
         image_info = self.image_info[image_id]
 
         if class_channels:
-            mask = np.zeros((image_info['height'],image_info['width'], self.num_classes))
+            mask = np.zeros((img_size[0],img_size[1], self.num_classes))
         else:
-            mask = np.zeros((image_info['height'],image_info['width']))
+            mask = np.zeros((img_size[0],img_size[1]))
 
         annotations = self.image_info[image_id]["annotations"]
         for annotation in annotations:
             # className = self.class_info[annotation['category_id']]['name']
             # pixel_value = self.class_names.index(className)
+            ann_mask = self.coco.annToMask(annotation)
+            ann_mask = utils.resize(ann_mask, img_size)
+            ann_mask[ann_mask!=0] = 1 #convert nonzero values to 1
             pixel_value = annotation['category_id']
             # pixel_value = self.map_source_class_id(f'{self.class_info[]['source']}.{}')
             if class_channels:
-                mask[:,:,pixel_value] = np.maximum(self.coco.annToMask(annotation),mask[:,:,pixel_value]) 
+                mask[:,:,pixel_value] = np.maximum(ann_mask ,mask[:,:,pixel_value]) 
             else:
-                mask = np.maximum(self.coco.annToMask(annotation)*pixel_value, mask)
+                mask = np.maximum(ann_mask*pixel_value, mask)
         return mask
         
     def load_mask(self, image_id):
