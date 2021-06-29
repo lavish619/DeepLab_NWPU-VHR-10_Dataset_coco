@@ -253,7 +253,6 @@ class Dataset(object):
     """
 
     def __init__(self, class_map=None):
-        self._image_ids = []
         self.image_info = []
         # Background is always the first class
         self.class_info = [{"source": "", "id": 0, "name": "BG"}]
@@ -307,13 +306,11 @@ class Dataset(object):
         self.class_ids = np.arange(self.num_classes)
         self.class_names = [clean_name(c["name"]) for c in self.class_info]
         self.num_images = len(self.image_info)
-        self._image_ids = np.arange(self.num_images)
 
         # Mapping from source class and image IDs to internal IDs
         self.class_from_source_map = {"{}.{}".format(info['source'], info['id']): id
                                       for info, id in zip(self.class_info, self.class_ids)}
-        self.image_from_source_map = {"{}.{}".format(info['source'], info['id']): id
-                                      for info, id in zip(self.image_info, self.image_ids)}
+        
 
         # Map sources to class_ids they support
         self.sources = list(set([i['source'] for i in self.class_info]))
@@ -340,10 +337,6 @@ class Dataset(object):
         info = self.class_info[class_id]
         assert info['source'] == source
         return info['id']
-
-    @property
-    def image_ids(self):
-        return self._image_ids
 
     def source_image_link(self, image_id):
         """Returns the path or URL to the image.

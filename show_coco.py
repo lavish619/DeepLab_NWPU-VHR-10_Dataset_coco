@@ -6,6 +6,7 @@ from mrcnn import utils
 
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils
+from torch.utils.data import Dataset
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("./")
@@ -30,58 +31,81 @@ class Config(object):
 ############################################################
 
 class CocoDataset(utils.Dataset):
-    def load_coco(self, dataset_dir, annotations, images_path, class_ids=None,
-                  class_map=None, return_coco=False):
+    def __init__(self, dataset_dir, annotations, images_path, class_ids=None,
+                  class_map=None):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val, minival, valminusminival)
-        year: What dataset year to load (2014, 2017) as a string, not an integer
         class_ids: If provided, only loads images that have the given classes.
         class_map: TODO: Not implemented yet. Supports maping classes from
             different datasets to the same class ID.
         return_coco: If True, returns the COCO object.
-        auto_download: Automatically download and unzip MS-COCO images and annotations
         """
-
-
-        coco = COCO("{}/{}".format(dataset_dir, annotations))
-
-
+        super(CocoDataset,self).__init__()
+        self.coco = COCO("{}/{}".format(dataset_dir, annotations))
         image_dir = "{}/{}".format(dataset_dir, images_path)
 
         # Load all classes or a subset?
         if not class_ids:
             # All classes
-            class_ids = sorted(coco.getCatIds())
+            class_ids = sorted(self.coco.getCatIds())
 
         # All images or a subset?
         if class_ids:
-            image_ids = []
+            image_Ids = []
             for id in class_ids:
-                image_ids.extend(list(coco.getImgIds(catIds=[id])))
+                image_Ids.extend(list(self.coco.getImgIds(catIds=[id])))
             # Remove duplicates
-            image_ids = list(set(image_ids))
+            self.image_ids = list(set(image_Ids))
         else:
             # All images
-            image_ids = list(coco.imgs.keys())
+            self.image_ids = list(self.coco.imgs.keys())
 
+        print('image_ids', self.image_ids)
+        print(self.coco.imgs)
         # Add classes
         for i in class_ids:
-            self.add_class("coco", i, coco.loadCats(i)[0]["name"])
+            self.add_class("coco", i, self.coco.loadCats(i)[0]["name"])
 
         # Add images
-        for i in image_ids:
+        for i in self.image_ids:
             self.add_image(
                 "coco", image_id=i,
-                path=os.path.join(image_dir, coco.imgs[i]['file_name']),
-                width=coco.imgs[i]["width"],
-                height=coco.imgs[i]["height"],
-                annotations=coco.loadAnns(coco.getAnnIds(
+                path=os.path.join(image_dir, self.coco.imgs[i]['file_name']),
+                width=self.coco.imgs[i]["width"],
+                height=self.coco.imgs[i]["height"],
+                annotations=self.coco.loadAnns(self.coco.getAnnIds(
                     imgIds=[i], catIds=class_ids, iscrowd=None)))
-        if return_coco:
-            return coco
 
+    def load_normalmask(self, image_id, class_channels = True):
+        """Load semantic segmenation masks for the given image.
 
+        Different datasets use different ways to store masks. This
+        function converts the different mask format to one format
+        in the form of a bitmap [height, width, classes].
+
+        Returns:
+        masks: A bool array of shape [height, width, classes] with
+            one mask per class.
+        """
+        image_info = self.image_info[image_id]
+
+        if class_channels:
+            mask = np.zeros((image_info['height'],image_info['width'], self.num_classes))
+        else:
+            mask = np.zeros((image_info['height'],image_info['width']))
+
+        annotations = self.image_info[image_id]["annotations"]
+        for annotation in annotations:
+            # className = self.class_info[annotation['category_id']]['name']
+            # pixel_value = self.class_names.index(className)
+            pixel_value = annotation['category_id']
+            # pixel_value = self.map_source_class_id(f'{self.class_info[]['source']}.{}')
+            if class_channels:
+                mask[:,:,pixel_value] = np.maximum(self.coco.annToMask(annotation),mask[:,:,pixel_value]) 
+            else:
+                mask = np.maximum(self.coco.annToMask(annotation)*pixel_value, mask)
+        return mask
+        
     def load_mask(self, image_id):
         """Load instance masks for the given image.
 
@@ -184,14 +208,14 @@ if __name__ == '__main__':
     config = InferenceConfig()
 
     # Validation dataset
-    dataset = CocoDataset()
     dataset_dir = './NWPU VHR-10_dataset_coco'
-    annotations = 'annotations.json'
+    annotations = 'instances_val2017.json'
     images_path = 'positive image set'
 
-    coco = dataset.load_coco(dataset_dir, annotations, images_path, return_coco=True)
+    dataset = CocoDataset(dataset_dir, annotations, images_path)
     dataset.prepare()
 
+    # print(dataset.class_info)
     print("Image Count: {}".format(len(dataset.image_ids)))
     print("Class Count: {}".format(dataset.num_classes))
     for i, info in enumerate(dataset.class_info):
@@ -200,12 +224,16 @@ if __name__ == '__main__':
     # Load random image and mask.
     image_id = np.random.choice(dataset.image_ids, 1)[0]
     image = dataset.load_image(image_id)
-    mask, class_ids = dataset.load_mask(image_id)
-    # Compute Bounding box
-    bbox = utils.extract_bboxes(mask)
+    mask_1, class_ids = dataset.load_mask(image_id)
+    # print(mask_1)
+    # mask = dataset.load_normalmask(image_id)
+    # print(image.shape, mask.shape)
+    # print(np.unique(mask))
+    # # Compute Bounding box
+    bbox = utils.extract_bboxes(mask_1)
 
-    # Display image and instances
-    visualize.display_instances(image, bbox, mask, class_ids, dataset.class_names)
+    # # Display image and instances
+    visualize.display_instances(image, bbox, mask_1, class_ids, dataset.class_names)
 
 
 
