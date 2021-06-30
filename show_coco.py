@@ -60,8 +60,6 @@ class CocoDataset(utils.Dataset):
             # All images
             self.image_ids = list(self.coco.imgs.keys())
 
-        print('image_ids', self.image_ids)
-        print(self.coco.imgs)
         # Add classes
         for i in class_ids:
             self.add_class("coco", i, self.coco.loadCats(i)[0]["name"])
