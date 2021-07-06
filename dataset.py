@@ -1,8 +1,4 @@
-import matplotlib.pyplot as plt
-import copy
-import random
 import os
-import sys
 import numpy as np
 
 import skimage.color
@@ -19,6 +15,7 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         self.image_info = []
         # Background is always the first class
         self.class_info = [{"source": "", "id": 0, "name": "BG"}]
+        # self.class_info = []
         self.source_class_ids = {}
 
         #  # Load all classes or a subset?
@@ -107,16 +104,16 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         return len(self.ids)
     
     def __getitem__(self, idx):        
-        
-        image = self.load_image(self.image_ids.index(self.image_info[idx]["id"]))
-        mask = self.load_normalmask(self.image_ids.index(self.image_info[idx]["id"]))
+        image_id = self.image_ids.index(self.image_info[idx]["id"])
+        image = self.load_image(image_id)
+        mask = self.load_normalmask(image_id)
 
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
             mask = self.target_transform(mask)
-            mask[mask!=0] = 1
-        return [image, mask]
+            mask[mask!=0] = 1 #convert non zero values to 1
+        return [image, mask, image_id]
 
     def load_image(self, image_id):
         """Load the specified image and return a [H,W,3] Numpy array.
@@ -147,23 +144,68 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         if class_channels:
             mask = np.zeros((image_info['height'],image_info['width'], self.num_classes))
         else:
-            mask = np.zeros((image_info['height'],image_info[width]))
+            mask = np.zeros((image_info['height'],image_info['width']))
 
         annotations = self.image_info[image_id]["annotations"]
         for annotation in annotations:
             # className = self.class_info[annotation['category_id']]['name']
             # pixel_value = self.class_names.index(className)
             ann_mask = self.coco.annToMask(annotation)
-            # ann_mask = utils.resize(ann_mask, img_size)
-            # ann_mask[ann_mask!=0] = 1 #convert nonzero values to 1
             pixel_value = annotation['category_id']
             # pixel_value = self.map_source_class_id(f'{self.class_info[]['source']}.{}')
             if class_channels:
                 mask[:,:,pixel_value] = np.maximum(ann_mask ,mask[:,:,pixel_value]) 
             # else:
             #     mask = np.maximum(ann_mask*pixel_value, mask)
-
+        mask[:,:,0] = np.logical_not(np.any(mask, axis=-1))
         return mask
+    
+    def load_mask(self, image_id):
+        """Load instance masks for the given image.
+
+        Different datasets use different ways to store masks. This
+        function converts the different mask format to one format
+        in the form of a bitmap [height, width, instances].
+
+        Returns:
+        masks: A bool array of shape [height, width, instance count] with
+            one mask per instance.
+        class_ids: a 1D array of class IDs of the instance masks.
+        """
+        # If not a COCO image, delegate to parent class.
+        image_info = self.image_info[image_id]
+
+        instance_masks = []
+        class_ids = []
+        annotations = self.image_info[image_id]["annotations"]
+        # Build mask of shape [height, width, instance_count] and list
+        # of class IDs that correspond to each channel of the mask.
+        for annotation in annotations:
+            # class_id = self.map_source_class_id(
+            #     "coco.{}".format(annotation['category_id']))
+            class_id = annotation['category_id']
+           
+            m = self.coco.annToMask(annotation)
+            # Some objects are so small that they're less than 1 pixel area
+            # and end up rounded out. Skip those objects.
+            if m.max() < 1:
+                continue
+            # Is it a crowd? If so, use a negative class ID.
+            if annotation['iscrowd']:
+                # Use negative class ID for crowds
+                class_id *= -1
+                # For crowd masks, annToMask() sometimes returns a mask
+                # smaller than the given dimensions. If so, resize it.
+                if m.shape[0] != image_info["height"] or m.shape[1] != image_info["width"]:
+                    m = np.ones([image_info["height"], image_info["width"]], dtype=bool)
+            instance_masks.append(m)
+            class_ids.append(class_id)
+
+        # Pack instance masks into an array
+        mask = np.stack(instance_masks, axis=2).astype(np.bool)
+        class_ids = np.array(class_ids, dtype=np.int32)
+        return mask, class_ids
+
 
 def prepare_dataset(images_path, train_annotations, val_annotations, 
                     batch_size=32, transform=None,target_transform=None ):
