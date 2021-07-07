@@ -14,8 +14,8 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         super(CocoDataset,self).__init__(image_dir, annfile, transform, target_transform)
         self.image_info = []
         # Background is always the first class
-        self.class_info = [{"source": "", "id": 0, "name": "BG"}]
-        # self.class_info = []
+        # self.class_info = [{"source": "", "id": 0, "name": "BG"}]
+        self.class_info = []
         self.source_class_ids = {}
 
         #  # Load all classes or a subset?
@@ -98,7 +98,6 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         image_info.update(kwargs)
         self.image_info.append(image_info)
 
-    
 
     def __len__(self):
         return len(self.ids)
@@ -151,13 +150,13 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
             # className = self.class_info[annotation['category_id']]['name']
             # pixel_value = self.class_names.index(className)
             ann_mask = self.coco.annToMask(annotation)
-            pixel_value = annotation['category_id']
+            pixel_value = annotation['category_id']-1
             # pixel_value = self.map_source_class_id(f'{self.class_info[]['source']}.{}')
             if class_channels:
                 mask[:,:,pixel_value] = np.maximum(ann_mask ,mask[:,:,pixel_value]) 
             # else:
             #     mask = np.maximum(ann_mask*pixel_value, mask)
-        mask[:,:,0] = np.logical_not(np.any(mask, axis=-1))
+        # mask[:,:,0] = np.logical_not(np.any(mask, axis=-1))
         return mask
     
     def load_mask(self, image_id):
