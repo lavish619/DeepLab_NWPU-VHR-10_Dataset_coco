@@ -32,7 +32,7 @@ val['categories'] = gt['categories']
 val['images'] = []
 val['annotations'] = []
 
-train_image_size = int(len(gt['images']) * 0.7)
+train_image_size = int(len(gt['images']) * 0.8)
 
 print('train_img_num:{}'.format(train_image_size))
 print('val_img_num:{}'.format(len(gt['images']) - train_image_size))
