@@ -111,17 +111,11 @@ class CocoDataset(torchvision.datasets.coco.CocoDetection):
         if self.transform:
             image = self.transform(image)
 
-        size = (300,450)
-        trans = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize(size),
-        ])
-        orig_mask = trans(mask)
         if self.target_transform:
             mask = self.target_transform(mask)
             # orig_mask = mask.clone().detach()
             mask[mask!=0] = 1 #convert non zero values to 1
-        return [image, mask, orig_mask, image_id]
+        return [image, mask, image_id]
 
     def load_image(self, image_id):
         """Load the specified image and return a [H,W,3] Numpy array.
