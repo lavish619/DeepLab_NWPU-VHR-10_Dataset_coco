@@ -1,8 +1,8 @@
 import os
 import sys
 import numpy as np
-from mrcnn import visualize
-from mrcnn import utils
+from lib import visualize
+from lib import utils
 
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils

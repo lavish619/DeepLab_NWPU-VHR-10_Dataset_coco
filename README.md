@@ -35,35 +35,34 @@ pip install pycocotools
 ### Visualization results
 
 <p align = "center">
-<img src="./images/Figure_1.png">
+<img src="./images/0.png">
 </p>
 
 <p align = "center">
-<img src="./images/Figure_2.png">
+<img src="./images/1.png">
 </p>
 
 <p align = "center">
-<img src="./images/Figure_3.png">
+<img src="./images/2.png">
 </p>
 
 <p align = "center">
-<img src="./images/Figure_4.png">
+<img src="./images/3.png">
 </p>
 
 <p align = "center">
-<img src="./images/Figure_5.png">
-</p>
-
-<p align = "center">
-<img src="./images/229.png">
+<img src="./images/4.png">
 </p>
 
 
 <p align = "center">
-<img src="./images/1084.png">
+<img src="./images/8.png">
 </p>
 
 
+<p align = "center">
+<img src="./images/9.png">
+</p>
 
 ### Acknowledgement
 

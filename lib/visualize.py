@@ -26,7 +26,7 @@ ROOT_DIR = os.path.abspath("../")
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-from mrcnn import utils
+from lib import utils
 
 
 ############################################################
@@ -80,6 +80,39 @@ def apply_mask(image, mask, color, alpha=0.5):
                                   image[:, :, c])
     return image
 
+
+def display_sematics(image, mask, colors,file_name=None,
+                      figsize=(16, 16), ax=None):
+    """
+    mask: [classes, height, width]
+    colors:  An array or colors to use with each object
+    figsize: (optional) the size of the image
+    """
+
+    # Number of classes
+    C = mask.shape[0]
+
+    auto_show = True
+    plt.figure(figsize=figsize)
+
+    plt.axis('off')
+
+    masked_image = image.astype(np.uint32).copy()
+    mask = mask.detach().cpu().numpy()
+    for i in range(C):
+        color = colors[i+1]
+
+        # Mask
+        mask_ = mask[i,:, :]
+
+        masked_image = apply_mask(masked_image, mask_, color, alpha=0.6)
+    # plt.tight_layout()
+    plt.imshow(masked_image.astype(np.uint8))
+    if file_name is not None:
+        plt.savefig(f"{file_name}", bbox_inches = 'tight')
+
+    if auto_show:
+        plt.show()
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",

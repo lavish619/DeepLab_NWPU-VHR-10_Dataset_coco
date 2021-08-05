@@ -6,8 +6,6 @@ import skimage.io
 import skimage.transform
 
 import torchvision
-from torchvision import transforms
-
 from torch.utils.data import DataLoader
 
 class CocoDataset(torchvision.datasets.coco.CocoDetection):
