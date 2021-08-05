@@ -56,27 +56,13 @@ def display_images(images, titles=None, cols=4, cmap=None, norm=None,
         i += 1
     plt.show()
 
-
-def random_colors(N, bright=True):
-    """
-    Generate random colors.
-    To get visually distinct colors, generate them in HSV space then
-    convert to RGB.
-    """
-    brightness = 1.0 if bright else 0.7
-    hsv = [(i / N, 1, brightness) for i in range(N)]
-    colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
-    random.shuffle(colors)
-    return colors
-
-
 def apply_mask(image, mask, color, alpha=0.5):
     """Apply the given mask to the image.
     """
     for c in range(3):
         image[:, :, c] = np.where(mask == 1,
                                   image[:, :, c] *
-                                  (1 - alpha) + alpha * color[c] * 255,
+                                  (1 - alpha) + alpha * color[c],
                                   image[:, :, c])
     return image
 
@@ -106,7 +92,6 @@ def display_sematics(image, mask, colors,file_name=None,
         mask_ = mask[i,:, :]
 
         masked_image = apply_mask(masked_image, mask_, color, alpha=0.6)
-    # plt.tight_layout()
     plt.imshow(masked_image.astype(np.uint8))
     if file_name is not None:
         plt.savefig(f"{file_name}", bbox_inches = 'tight')
@@ -114,11 +99,11 @@ def display_sematics(image, mask, colors,file_name=None,
     if auto_show:
         plt.show()
 
-def display_instances(image, boxes, masks, class_ids, class_names,
+def display_instances(image, boxes, masks, class_ids, class_names, colors,
                       scores=None, title="",
                       figsize=(16, 16), ax=None,
                       show_mask=True, show_bbox=True,
-                      colors=None, captions=None):
+                       captions=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -144,9 +129,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     if not ax:
         _, ax = plt.subplots(1, figsize=figsize)
         auto_show = True
-
-    # Generate random colors
-    colors = colors or random_colors(N)
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
@@ -391,7 +373,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
     plt.ylabel("Predictions")
 
 
-def draw_boxes(image, boxes=None, refined_boxes=None,
+def draw_boxes(image, colors, boxes=None, refined_boxes=None,
                masks=None, captions=None, visibilities=None,
                title="", ax=None):
     """Draw bounding boxes and segmentation masks with different
@@ -414,9 +396,6 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
     # Matplotlib Axis
     if not ax:
         _, ax = plt.subplots(1, figsize=(12, 12))
-
-    # Generate random colors
-    colors = random_colors(N)
 
     # Show area outside image boundaries.
     margin = image.shape[0] // 10
