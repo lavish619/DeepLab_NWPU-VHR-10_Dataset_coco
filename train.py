@@ -5,6 +5,7 @@ from tqdm.notebook import tqdm
 
 import torch
 from loss_metrics import calc_loss, mIoU
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def print_metrics(metrics, epoch_samples, phase):    
